@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>锅炉受热面全寿命管理系统 | v7.3 湛江电厂稳定版</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg-0: #00060f; --bg-1: #001122; --bg-2: #001d3d;
+    --accent: #00d4ff; --accent-2: #0077b6; --accent-3: #48cae4;
+    --glow: 0 0 20px rgba(0, 212, 255, 0.6);
+    --text: #e0f7ff; --text-dim: #7fb3d5;
+    --danger: #ff3860; --warn: #ffcc00; --ok: #00e676;
+  }
+  body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; background: var(--bg-0); color: var(--text); overflow-x: hidden; min-height: 100vh; }
+  .bg-grid { position: fixed; inset: 0; background-image: linear-gradient(rgba(0, 212, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 212, 255, 0.05) 1px, transparent 1px); background-size: 40px 40px; z-index: -2; animation: gridMove 20s linear infinite; }
+  @keyframes gridMove { 100% { background-position: 40px 40px; } }
+  .bg-glow { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(ellipse 600px 400px at 10% 20%, rgba(0, 119, 182, 0.15), transparent), radial-gradient(ellipse 500px 500px at 90% 80%, rgba(72, 202, 228, 0.1), transparent); }
+
+  header { padding: 20px 40px; border-bottom: 1px solid rgba(0, 212, 255, 0.2); backdrop-filter: blur(10px); background: rgba(0, 6, 15, 0.6); position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; }
+  .logo { display: flex; align-items: center; gap: 15px; }
+  .logo-icon { width: 48px; height: 48px; border: 2px solid var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: var(--glow); position: relative; overflow: hidden; }
+  .logo-icon::before { content: ''; position: absolute; inset: 0; background: linear-gradient(45deg, transparent 40%, rgba(0, 212, 255, 0.3), transparent 60%); animation: shine 3s linear infinite; }
+  @keyframes shine { 0%{transform:translateX(-100%);} 100%{transform:translateX(100%);} }
+  .logo-icon svg { width: 28px; height: 28px; fill: var(--accent); z-index: 1; }
+  .logo-text h1 { font-size: 20px; font-weight: 700; letter-spacing: 2px; background: linear-gradient(90deg, #fff, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .logo-text p { font-size: 11px; color: var(--text-dim); letter-spacing: 3px; }
+  .header-info { display: flex; gap: 25px; align-items: center; font-size: 12px; color: var(--text-dim); }
+  .header-info .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 10px var(--ok); display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+  nav { display: flex; gap: 4px; padding: 15px 40px; background: rgba(0, 17, 34, 0.4); border-bottom: 1px solid rgba(0, 212, 255, 0.1); overflow-x: auto; }
+  .nav-btn { padding: 10px 22px; background: transparent; border: 1px solid rgba(0, 212, 255, 0.2); color: var(--text-dim); cursor: pointer; border-radius: 6px; font-size: 13px; letter-spacing: 1px; transition: all 0.3s; white-space: nowrap; font-family: inherit; }
+  .nav-btn:hover { color: var(--accent); border-color: var(--accent); background: rgba(0, 212, 255, 0.05); }
+  .nav-btn.active { background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 119, 182, 0.2)); color: #fff; border-color: var(--accent); box-shadow: var(--glow); }
+  .nav-btn.ai-btn { border-color: #a29bfe; color: #a29bfe; }
+  .nav-btn.ai-btn.active { background: linear-gradient(135deg, rgba(162, 155, 254, 0.3), rgba(108, 92, 231, 0.2)); border-color: #a29bfe; box-shadow: 0 0 15px rgba(162, 155, 254, 0.5); color: #fff; }
+
+  main { padding: 30px 40px 60px; max-width: 1600px; margin: 0 auto; }
+  .view { display: none; animation: fadeIn 0.5s; }
+  .view.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .section-title { display: flex; align-items: center; gap: 12px; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid rgba(0, 212, 255, 0.15); }
+  .section-title::before { content: ''; width: 4px; height: 24px; background: linear-gradient(180deg, var(--accent), transparent); box-shadow: var(--glow); }
+  .section-title h2 { font-size: 22px; font-weight: 600; letter-spacing: 1px; }
+  .section-title .sub { color: var(--text-dim); font-size: 12px; margin-left: 10px; letter-spacing: 2px; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 30px; }
+  .stat-card { background: linear-gradient(135deg, rgba(0, 29, 61, 0.6), rgba(0, 17, 34, 0.6)); border: 1px solid rgba(0, 212, 255, 0.2); border-radius: 10px; padding: 20px; position: relative; overflow: hidden; transition: all 0.3s; }
+  .stat-card:hover { transform: translateY(-4px); border-color: var(--accent); box-shadow: var(--glow); }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+  .stat-label { font-size: 12px; color: var(--text-dim); letter-spacing: 1px; margin-bottom: 8px; }
+  .stat-value { font-size: 32px; font-weight: 700; color: var(--accent); text-shadow: 0 0 15px rgba(0, 212, 255, 0.5); }
+  
+  .card { background: linear-gradient(135deg, rgba(0, 29, 61, 0.5), rgba(0, 17, 34, 0.5)); border: 1px solid rgba(0, 212, 255, 0.15); border-radius: 12px; padding: 24px; margin-bottom: 20px; backdrop-filter: blur(5px); }
+  .card-title { font-size: 15px; font-weight: 600; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; color: var(--accent-3); }
+  .card-title::before { content: '◆'; color: var(--accent); font-size: 10px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+  .form-group { margin-bottom: 15px; }
+  .form-group label { display: block; font-size: 11px; color: var(--text-dim); margin-bottom: 6px; letter-spacing: 1px; text-transform: uppercase; }
+  .form-group select, .form-group input, .form-group textarea { width: 100%; padding: 10px 12px; background: rgba(0, 6, 15, 0.8); border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 6px; color: var(--text); font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; transition: all 0.3s; }
+  .form-group textarea { font-family: inherit; resize: vertical; }
+  .form-group select:focus, .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--accent); box-shadow: var(--glow); }
+  .form-group select option { background: var(--bg-1); }
+
+  .code-output { margin-top: 20px; padding: 20px; background: rgba(0, 6, 15, 0.8); border: 1px solid var(--accent); border-radius: 8px; text-align: center; box-shadow: inset 0 0 30px rgba(0, 212, 255, 0.1), var(--glow); }
+  .code-output .label { font-size: 11px; color: var(--text-dim); letter-spacing: 2px; }
+  .code-output .code { font-family: 'Consolas', 'Courier New', monospace; font-size: 28px; font-weight: 700; color: var(--accent); letter-spacing: 3px; margin-top: 10px; text-shadow: 0 0 15px rgba(0, 212, 255, 0.8); word-break: break-all; }
+  .code-segment { display: inline-block; padding: 2px 6px; margin: 0 2px; background: rgba(0, 212, 255, 0.1); border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 4px; font-size: 20px; }
+
+  .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid rgba(0, 212, 255, 0.15); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: linear-gradient(180deg, rgba(0, 119, 182, 0.4), rgba(0, 29, 61, 0.6)); padding: 12px; text-align: left; font-weight: 600; letter-spacing: 1px; border-bottom: 2px solid rgba(0, 212, 255, 0.3); color: var(--accent-3); font-size: 12px; white-space: nowrap; }
+  td { padding: 11px 12px; border-bottom: 1px solid rgba(0, 212, 255, 0.08); font-family: 'Consolas', monospace; }
+  tr:hover td { background: rgba(0, 212, 255, 0.05); }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: 1px; }
+  .badge-ww { background: rgba(0, 230, 118, 0.15); color: var(--ok); border: 1px solid var(--ok); }
+  .badge-sh { background: rgba(255, 204, 0, 0.15); color: var(--warn); border: 1px solid var(--warn); }
+  .badge-rh { background: rgba(0, 212, 255, 0.15); color: var(--accent); border: 1px solid var(--accent); }
+  .badge-eco { background: rgba(255, 56, 96, 0.15); color: var(--danger); border: 1px solid var(--danger); }
+
+  .search-box { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .search-box input, .search-box select { flex: 1; min-width: 200px; padding: 14px 18px; background: rgba(0, 6, 15, 0.8); border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 8px; color: var(--text); font-family: 'Consolas', monospace; font-size: 14px; }
+  .search-box input:focus, .search-box select:focus { outline: none; border-color: var(--accent); box-shadow: var(--glow); }
+  .btn { padding: 12px 24px; background: linear-gradient(135deg, var(--accent-2), var(--accent)); border: none; border-radius: 8px; color: #000; font-weight: 700; cursor: pointer; letter-spacing: 1px; transition: all 0.3s; font-family: inherit; display: inline-flex; align-items: center; gap: 8px; }
+  .btn:hover { transform: translateY(-2px); box-shadow: var(--glow); }
+  .btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  .btn-outline:hover { background: rgba(0, 212, 255, 0.1); }
+  .btn-ai { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: #fff; }
+  .btn-ai:hover { box-shadow: 0 0 20px rgba(162, 155, 254, 0.6); transform: translateY(-2px); }
+
+  .timeline { position: relative; padding-left: 30px; }
+  .timeline::before { content: ''; position: absolute; left: 10px; top: 0; bottom: 0; width: 2px; background: linear-gradient(180deg, var(--accent), transparent); }
+  .tl-item { position: relative; padding-bottom: 20px; }
+  .tl-item::before { content: ''; position: absolute; left: -26px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  .tl-date { font-size: 11px; color: var(--accent); letter-spacing: 2px; }
+  .tl-title { font-size: 14px; margin-top: 4px; font-weight: 600; }
+  .tl-desc { font-size: 12px; color: var(--text-dim); margin-top: 4px; line-height: 1.6; }
+
+  .progress-row { margin-bottom: 14px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; color: var(--text-dim); }
+  .progress-bar { height: 8px; background: rgba(0, 212, 255, 0.1); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent-2), var(--accent)); box-shadow: 0 0 10px var(--accent); position: relative; transition: width 1s; }
+  .progress-fill::after { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 20px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4)); }
+  .progress-fill.danger { background: linear-gradient(90deg, #ff6b6b, var(--danger)); box-shadow: 0 0 10px var(--danger); }
+  .progress-fill.warn { background: linear-gradient(90deg, #ffa502, var(--warn)); box-shadow: 0 0 10px var(--warn); }
+  .progress-fill.ok { background: linear-gradient(90deg, #2ed573, var(--ok)); box-shadow: 0 0 10px var(--ok); }
+
+  .bar-chart { display: flex; align-items: flex-end; gap: 15px; height: 200px; padding: 20px 0; }
+  .bar-item { flex: 1; display: flex; flex-direction: column; align-items: center; }
+  .bar { width: 100%; background: linear-gradient(180deg, var(--accent), var(--accent-2)); border-radius: 4px 4px 0 0; position: relative; min-height: 10px; transition: height 1s; box-shadow: 0 0 15px rgba(0, 212, 255, 0.3); }
+  .bar::after { content: attr(data-val); position: absolute; top: -25px; left: 50%; transform: translateX(-50%); font-size: 12px; color: var(--accent); font-weight: 700; }
+  .bar-label { margin-top: 8px; font-size: 11px; color: var(--text-dim); text-align: center; }
+
+  /* 【修复点】移除 transform: scale，仅使用 filter 发光，防止 SVG 原生 translate 冲突导致的抖动 */
+  .boiler-diagram { position: relative; width: 100%; height: 750px; background: #0c101d; border: 1px solid rgba(0, 212, 255, 0.2); border-radius: 10px; overflow: hidden; }
+  .boiler-svg { width: 100%; height: 100%; }
+  .boiler-zone { cursor: pointer; transition: filter 0.3s ease; }
+  .boiler-zone:hover { filter: brightness(1.4) drop-shadow(0 0 15px rgba(0, 242, 254, 0.8)); }
+  
+  .scan-line { position: fixed; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.3; z-index: 99; pointer-events: none; animation: scan 6s linear infinite; }
+  @keyframes scan { 0% { top: 0; opacity: 0; } 10% { opacity: 0.3; } 90% { opacity: 0.3; } 100% { top: 100vh; opacity: 0; } }
+
+  .comp-tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid rgba(0, 212, 255, 0.2); flex-wrap: wrap;}
+  .comp-tab { padding: 10px 16px; background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 12px; font-family: inherit; letter-spacing: 1px; border-bottom: 2px solid transparent; transition: all 0.3s; }
+  .comp-tab:hover { color: var(--accent); }
+  .comp-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .info-item { padding: 12px; background: rgba(0, 6, 15, 0.6); border: 1px solid rgba(0, 212, 255, 0.1); border-radius: 6px; }
+  .info-item .k { font-size: 10px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
+  .info-item .v { font-size: 15px; margin-top: 4px; color: var(--accent); font-weight: 600; }
+
+  .alert { padding: 14px 18px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid; display: flex; gap: 12px; align-items: flex-start; font-size: 13px; }
+  .alert-info { background: rgba(0, 212, 255, 0.08); border-color: var(--accent); }
+  .alert-warn { background: rgba(255, 204, 0, 0.08); border-color: var(--warn); }
+  .alert-danger { background: rgba(255, 56, 96, 0.08); border-color: var(--danger); }
+
+  .tube-detail { padding: 20px; background: rgba(0, 17, 34, 0.8); border: 1px solid var(--accent); border-radius: 10px; margin-top: 15px; }
+  .tube-detail h3 { font-family: 'Consolas', monospace; color: var(--accent); font-size: 20px; letter-spacing: 2px; margin-bottom: 15px; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5); display: flex; align-items: center; flex-wrap: wrap;}
+
+  .log-box { margin-top: 15px; padding: 15px; background: rgba(0, 6, 15, 0.8); border: 1px solid rgba(0, 212, 255, 0.2); border-radius: 6px; font-family: 'Consolas', monospace; font-size: 12px; color: var(--ok); height: 150px; overflow-y: auto; display: none; }
+  .code-preview { background: rgba(0, 6, 15, 0.8); border: 1px dashed rgba(0, 212, 255, 0.3); padding: 15px; border-radius: 6px; margin-top: 15px; font-family: 'Consolas', monospace; font-size: 13px; color: var(--accent); line-height: 1.8; max-height: 200px; overflow-y: auto; }
+  .code-preview span { color: var(--text-dim); }
+  .fmt-seg { display: inline-block; padding: 4px 8px; margin: 3px; border-radius: 4px; font-family: 'Consolas', monospace; background: rgba(0, 212, 255, 0.08); border: 1px solid rgba(0, 212, 255, 0.2); }
+
+  .ai-metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+  .ai-metric { text-align: center; padding: 20px 15px; background: rgba(0,29,61,0.5); border: 1px solid rgba(0,212,255,0.2); border-radius: 8px; position: relative; overflow: hidden;}
+  .ai-metric::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background: linear-gradient(90deg, transparent, #a29bfe, transparent); }
+  .ai-metric .val { font-size: 28px; font-weight: 800; color: #a29bfe; font-family: 'Consolas', monospace; text-shadow: 0 0 10px rgba(162,155,254,0.5); }
+  .ai-metric .label { font-size: 11px; color: var(--text-dim); margin-top: 8px; letter-spacing: 1px;}
+  .ai-chart-container { width: 100%; height: 320px; background: rgba(0,6,15,0.8); border: 1px solid rgba(0,212,255,0.2); border-radius: 8px; padding: 10px; position: relative;}
+  .ai-report { font-family: 'Consolas', 'Microsoft YaHei', monospace; font-size: 13px; line-height: 1.8; color: var(--accent-3); min-height: 100px; border-left: 3px solid #a29bfe; padding: 20px; background: rgba(162,155,254,0.03); border-radius: 4px; white-space: pre-wrap; }
+  .ai-cursor { display: inline-block; width: 8px; height: 16px; background: #a29bfe; animation: blink 1s infinite; vertical-align: middle; margin-left: 2px; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+  .loading-spinner { display: inline-block; width: 40px; height: 40px; border: 3px solid rgba(162,155,254,0.2); border-radius: 50%; border-top-color: #a29bfe; animation: spin 1s ease-in-out infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .mini-chart { width: 100%; height: 120px; background: rgba(0,6,15,0.6); border: 1px solid rgba(0,212,255,0.1); border-radius: 6px; margin-top: 15px; }
+
+  footer { padding: 25px 40px; text-align: center; border-top: 1px solid rgba(0, 212, 255, 0.15); color: var(--text-dim); font-size: 12px; letter-spacing: 2px; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-track { background: var(--bg-0); } ::-webkit-scrollbar-thumb { background: var(--accent-2); border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+<div class="scan-line"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.3l7.5 3.7L12 11.7 4.5 8 12 4.3zM4 9.5l7 3.5v7l-7-3.5v-7zm16 0v7l-7 3.5v-7l7-3.5z"/></svg></div>
+    <div class="logo-text">
+      <h1>BOILER-TUBE LIFECYCLE SYSTEM</h1>
+      <p>锅炉受热面全寿命管理系统 v7.3 (湛江电厂稳定版)</p>
+    </div>
+  </div>
+  <div class="header-info">
+    <div><span class="dot"></span>#1机组 在线</div>
+    <div>⏱ <span id="clock">--:--:--</span></div>
+  </div>
+</header>
+
+<nav>
+  <button class="nav-btn active" data-view="dashboard">◈ 总览</button>
+  <button class="nav-btn" data-view="generator">⚙ 编码生成</button>
+  <button class="nav-btn" data-view="search">🔍 精准查询</button>
+  <button class="nav-btn" data-view="components">▣ 受热面库</button>
+  <button class="nav-btn" data-view="headers">⬢ 集箱库</button>
+  <button class="nav-btn" data-view="lifecycle">⏳ 寿命跟踪</button>
+  <button class="nav-btn" data-view="datamgr">📝 数据录入</button>
+  <button class="nav-btn" data-view="inventory">📊 全量台账</button>
+  <button class="nav-btn ai-btn" data-view="ai">🤖 AI 趋势分析</button>
+  <button class="nav-btn" data-view="diagram">◉ 炉管分布图</button>
+</nav>
+
+<main>
+  <!-- 1. DASHBOARD -->
+  <section class="view active" id="view-dashboard">
+    <div class="section-title"><h2>系统总览</h2><span class="sub">OVERVIEW · 宝钢湛江 #1机组</span></div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">单炉管理单元</div><div class="stat-value" data-count="5139">0</div></div>
+      <div class="stat-card"><div class="stat-label">水冷壁管 (WW)</div><div class="stat-value" data-count="722">0</div></div>
+      <div class="stat-card"><div class="stat-label">过热器系统 (SH)</div><div class="stat-value" data-count="2681">0</div></div>
+      <div class="stat-card"><div class="stat-label">再热+省煤器</div><div class="stat-value" data-count="1736">0</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">部件健康度评估</div>
+        <div class="progress-row"><div class="progress-label"><span>水冷壁 · WW</span><span>87%</span></div><div class="progress-bar"><div class="progress-fill ok" style="width:87%"></div></div></div>
+        <div class="progress-row"><div class="progress-label"><span>低温过热器 · LSH</span><span>72%</span></div><div class="progress-bar"><div class="progress-fill" style="width:72%"></div></div></div>
+        <div class="progress-row"><div class="progress-label"><span>高温过热器 · HSH</span><span>42%</span></div><div class="progress-bar"><div class="progress-fill warn" style="width:42%"></div></div></div>
+        <div class="progress-row"><div class="progress-label"><span>高温再热器 · HRH</span><span>38%</span></div><div class="progress-bar"><div class="progress-fill danger" style="width:38%"></div></div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">系统预警</div>
+        <div class="alert alert-info"><div>💡</div><div><strong>v7.3 提示：</strong>修复了炉管分布图鼠标悬停时的抖动问题（移除了与SVG原生translate冲突的CSS scale变换），交互现已丝滑稳定。</div></div>
+        <div style="margin-top:20px; text-align:center;">
+          <button class="btn btn-ai" onclick="document.querySelector('[data-view=diagram]').click()">◉ 查看高精度炉管分布图</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. CODE GENERATOR -->
+  <section class="view" id="view-generator">
+    <div class="section-title"><h2>编码生成器</h2><span class="sub">CODE GENERATOR · 6段层级组合法</span></div>
+    <div class="card">
+      <div class="card-title">编码结构 · X-XX-XX-XXX-XXXX-XXX</div>
+      <div style="text-align:center; margin: 15px 0;">
+        <span class="fmt-seg" style="color:#00e676">[1] 炉号</span> - 
+        <span class="fmt-seg" style="color:#ffcc00">[2] 系统</span> - 
+        <span class="fmt-seg" style="color:#48cae4">[3] 区域</span> - 
+        <span class="fmt-seg" style="color:#ff9f43">[4] 屏/排</span> - 
+        <span class="fmt-seg" style="color:#a29bfe">[5] 管圈</span> - 
+        <span class="fmt-seg" style="color:#fd79a8">[6] 分段</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">交互式编码生成</div>
+      <div class="form-grid">
+        <div class="form-group"><label>[1] 炉号</label><select id="f-boiler"><option value="1">1号炉</option><option value="2">2号炉</option></select></div>
+        <div class="form-group"><label>[2] 系统代码</label><select id="f-system"><option value="WW">WW · 水冷壁</option><option value="LSH">LSH · 低温过热器</option><option value="HSH">HSH · 高温过热器</option><option value="LRH">LRH · 低温再热器</option><option value="HRH">HRH · 高温再热器</option><option value="ECO">ECO · 省煤器</option></select></div>
+        <div class="form-group"><label>[3] 位置区域</label><select id="f-zone"><option value="FR">FR · 前墙</option><option value="FL">FL · 左墙</option><option value="RR">RR · 后墙</option><option value="E">E · 入口</option><option value="M">M · 中间</option><option value="O">O · 出口</option></select></div>
+        <div class="form-group"><label>[4] 屏/排 (3位)</label><input type="number" id="f-panel" min="1" max="999" value="8" /></div>
+        <div class="form-group"><label>[5] 管圈 (4位)</label><input type="number" id="f-tube" min="1" max="9999" value="3" /></div>
+        <div class="form-group"><label>[6] 分段/焊口</label><select id="f-seg"><option value="000">000 · 不分段</option><option value="A01">A01 · 直管段1</option><option value="W02">W02 · 焊口2</option></select></div>
+      </div>
+      <div class="code-output">
+        <div class="label">GENERATED CODE</div>
+        <div class="code" id="codeOut">1-WW-FR-008-0003-000</div>
+        <div id="codeDesc" style="margin-top:15px; font-size:12px; color:var(--text-dim);"></div>
+        <button class="btn" style="margin-top:15px;" onclick="copyCode()">📋 复制编码</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. SEARCH -->
+  <section class="view" id="view-search">
+    <div class="section-title"><h2>精准查询</h2><span class="sub">TUBE SEARCH · 全局数据穿透检索</span></div>
+    <div class="card">
+      <div class="card-title">管码/部件查询 (支持模糊匹配与本地CSV数据)</div>
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="输入完整或局部管码 例如: 1-WW-FR-015 或 045-0003" />
+        <button class="btn" onclick="doSearch()">🔍 全局查询</button>
+      </div>
+      <div id="searchResult"></div>
+    </div>
+  </section>
+
+  <!-- 4. COMPONENTS -->
+  <section class="view" id="view-components">
+    <div class="section-title"><h2>受热面部件库</h2><span class="sub">COMPONENT DATABASE</span></div>
+    <div class="comp-tabs">
+      <button class="comp-tab active" data-comp="ww">水冷壁</button>
+      <button class="comp-tab" data-comp="lsh">低温过热器</button>
+      <button class="comp-tab" data-comp="psh">全大屏过热器</button>
+      <button class="comp-tab" data-comp="hsh-p">屏式过热器</button>
+      <button class="comp-tab" data-comp="hsh">高温过热器</button>
+      <button class="comp-tab" data-comp="lrh">低温再热器</button>
+      <button class="comp-tab" data-comp="hrh">高温再热器</button>
+      <button class="comp-tab" data-comp="eco">省煤器</button>
+    </div>
+    <div id="compContent"></div>
+  </section>
+
+  <!-- 5. HEADERS -->
+  <section class="view" id="view-headers">
+    <div class="section-title"><h2>集箱库</h2><span class="sub">HEADER DATABASE</span></div>
+    <div class="card">
+      <div class="card-title">过热器系统集箱</div>
+      <div class="table-wrap"><table><thead><tr><th>序号</th><th>名称</th><th>规格</th><th>材质</th></tr></thead><tbody id="shHeaders"></tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="card-title">再热器系统集箱</div>
+      <div class="table-wrap"><table><thead><tr><th>序号</th><th>名称</th><th>规格</th><th>材质</th></tr></thead><tbody id="rhHeaders"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- 6. LIFECYCLE -->
+  <section class="view" id="view-lifecycle">
+    <div class="section-title"><h2>寿命跟踪</h2><span class="sub">LIFECYCLE TRACKER · 真实数据驱动</span></div>
+    <div class="card">
+      <div class="card-title">选择跟踪管段</div>
+      <div class="search-box">
+        <select id="lcSelect"><option value="">-- 请选择管码 --</option></select>
+        <input type="text" id="lcCustomCode" placeholder="或直接输入管码回车" style="flex:1;" onkeypress="if(event.key==='Enter')loadLifecycle(this.value)"/>
+        <button class="btn" onclick="loadLifecycle()">加载数据</button>
+      </div>
+    </div>
+    <div id="lcContent"></div>
+  </section>
+
+  <!-- 7. DATA MANAGEMENT -->
+  <section class="view" id="view-datamgr">
+    <div class="section-title"><h2>数据录入与管理</h2><span class="sub">DATA MANAGEMENT · CSV 便捷录入</span></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">单条新增寿命事件</div>
+        <div class="form-group"><label>管段编码</label><input type="text" id="dm-code" placeholder="例: 1-WW-FR-015-0042-000" /></div>
+        <div class="form-group"><label>事件类型</label><select id="dm-type"><option>测厚</option><option>金相分析</option><option>无损检测</option><option>割管取样</option><option>检修维护</option></select></div>
+        <div class="form-group"><label>日期</label><input type="date" id="dm-date" /></div>
+        <div class="form-group"><label>详细数据/结论</label><textarea id="dm-desc" rows="3"></textarea></div>
+        <button class="btn" style="width:100%;" onclick="addUserEvent()">💾 保存记录</button>
+      </div>
+      <div class="card">
+        <div class="card-title">单条管段更换登记</div>
+        <div class="alert alert-info"><div>ℹ</div><div>旧码报废，新管获新码(加-R1)，自动关联历史。</div></div>
+        <div class="form-group"><label>旧管段编码</label><input type="text" id="dm-oldcode" /></div>
+        <div class="form-group"><label>新管段编码 (带-R1)</label><input type="text" id="dm-newcode" /></div>
+        <div class="form-group"><label>更换原因</label><input type="text" id="dm-reason" /></div>
+        <div class="form-group"><label>更换日期</label><input type="date" id="dm-rep-date" /></div>
+        <button class="btn" style="width:100%;" onclick="addReplacement()">🔄 登记更换</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">批量数据管理</div>
+      <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
+        <button class="btn" onclick="downloadCSVTemplate()">📄 下载 CSV 模板</button>
+        <button class="btn btn-outline" onclick="exportCSV()">📥 导出 CSV</button>
+        <label class="btn btn-outline" style="cursor:pointer;">📤 导入 CSV <input type="file" id="importFile" accept=".csv" style="display:none;" onchange="importCSV(event)"></label>
+        <button class="btn btn-outline" style="border-color:var(--danger); color:var(--danger);" onclick="clearLocalData()">🗑 清空本地数据</button>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>日期</th><th>管码</th><th>类型</th><th>详情</th><th>操作</th></tr></thead><tbody id="dm-table-body"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- 8. INVENTORY -->
+  <section class="view" id="view-inventory">
+    <div class="section-title"><h2>全量管段台账</h2><span class="sub">TUBE INVENTORY & CSV EXPORT</span></div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">单炉管理单元</div><div class="stat-value" id="invTotal">5,139</div></div>
+      <div class="stat-card"><div class="stat-label">水冷壁 (WW)</div><div class="stat-value" style="color:var(--ok)">722</div></div>
+      <div class="stat-card"><div class="stat-label">过热器 (SH)</div><div class="stat-value" style="color:var(--warn)">2,681</div></div>
+      <div class="stat-card"><div class="stat-label">再热+省煤器</div><div class="stat-value" style="color:var(--accent-3)">1,736</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">全厂管段编码规则矩阵</div>
+      <div class="table-wrap" style="max-height: 400px; overflow-y: auto;">
+        <table><thead><tr><th>部件名称</th><th>系统</th><th>区域</th><th>屏/排范围</th><th>管圈范围</th><th>数量</th><th>规格</th><th>材质</th></tr></thead><tbody id="matrixBody"></tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">全量台账生成与导出引擎</div>
+      <div style="display:flex; gap:15px; flex-wrap:wrap;">
+        <button class="btn" onclick="generateCSV(1)">⚡ 生成 1号炉 CSV</button>
+        <button class="btn" onclick="generateCSV(2)">⚡ 生成 2号炉 CSV</button>
+        <button class="btn btn-outline" onclick="generateCSV(0)">📦 生成 全厂合并 CSV</button>
+      </div>
+      <div class="progress-bar" id="invProgBar" style="display:none; margin-top:15px;"><div class="progress-fill" id="invProgFill"></div></div>
+      <div class="log-box" id="invLogBox"></div>
+      <div class="code-preview" id="invPreview"><span>// 点击生成按钮后预览...</span></div>
+    </div>
+  </section>
+
+  <!-- 9. AI ANALYSIS -->
+  <section class="view" id="view-ai">
+    <div class="section-title"><h2>AI 寿命趋势跟踪分析</h2><span class="sub">AI TREND ANALYSIS · 线性回归与真实数据驱动</span></div>
+    <div class="card">
+      <div class="card-title">分析参数配置</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>分析对象 (仅显示有测厚数据的管码)</label>
+          <select id="ai-target"><option value="">-- 请先导入CSV数据或手工录入测厚记录 --</option></select>
+        </div>
+        <div class="form-group">
+          <label>报废阈值设定 (mm)</label>
+          <input type="number" id="ai-threshold" value="5.5" step="0.1" />
+        </div>
+        <div class="form-group" style="display:flex; align-items:flex-end;">
+          <button class="btn btn-ai" style="width:100%" onclick="runAIAnalysis()">🚀 启动 AI 推理 (线性回归)</button>
+        </div>
+      </div>
+    </div>
+    <div id="ai-loading" style="display:none; text-align:center; padding:60px 0;">
+      <div class="loading-spinner"></div>
+      <p style="color:#a29bfe; margin-top:20px; letter-spacing:2px; font-size:14px;">正在提取历史测厚数据并执行最小二乘法计算...</p>
+    </div>
+    <div id="ai-results" style="display:none;">
+      <div class="ai-metric-grid">
+        <div class="ai-metric"><div class="val" id="ai-rul">--</div><div class="label">预测剩余寿命 (年)</div></div>
+        <div class="ai-metric"><div class="val" id="ai-rate">--</div><div class="label">真实减薄速率 (mm/y)</div></div>
+        <div class="ai-metric"><div class="val" id="ai-points">--</div><div class="label">有效数据点</div></div>
+        <div class="ai-metric"><div class="val" id="ai-status">--</div><div class="label">AI 综合评级</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">真实趋势预测图谱</div>
+        <div class="ai-chart-container"><svg id="aiChart" viewBox="0 0 800 300" preserveAspectRatio="none" style="width:100%; height:100%;"></svg></div>
+      </div>
+      <div class="card">
+        <div class="card-title">AI 智能诊断报告</div>
+        <div class="ai-report" id="ai-report-text"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. DIAGRAM (高精度 SVG 融合版 - 已修复抖动) -->
+  <section class="view" id="view-diagram">
+    <div class="section-title"><h2>锅炉受热面炉管分布图</h2><span class="sub">Π型设计 · 宝钢湛江 #1机组 (点击管排查看运行参数)</span></div>
+    <div class="boiler-diagram">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="100%" height="100%" class="boiler-svg" style="background-color: #0c101d; font-family: 'Segoe UI', system-ui, sans-serif;">
+        <defs>
+          <linearGradient id="bg-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0c101d" />
+            <stop offset="100%" stop-color="#05070c" />
+          </linearGradient>
+          <linearGradient id="fire-glow" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" stop-color="#ff3300" stop-opacity="0.6" />
+            <stop offset="40%" stop-color="#ff6600" stop-opacity="0.3" />
+            <stop offset="100%" stop-color="#ffaa00" stop-opacity="0" />
+          </linearGradient>
+          
+          <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+          <filter id="glow-orange" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+
+          <pattern id="tube-pattern" width="12" height="12" patternUnits="userSpaceOnUse">
+            <path d="M 3,0 L 3,12 M 9,0 L 9,12" stroke="rgba(255,255,255,0.12)" stroke-width="1" />
+          </pattern>
+          <pattern id="tube-pattern-horiz" width="12" height="12" patternUnits="userSpaceOnUse">
+            <path d="M 0,3 L 12,3 M 0,9 L 12,9" stroke="rgba(255,255,255,0.12)" stroke-width="1" />
+          </pattern>
+        </defs>
+
+        <rect width="1600" height="1000" fill="url(#bg-glow)" />
+
+        <g stroke="rgba(255, 255, 255, 0.02)" stroke-width="1">
+          <path d="M0,200 L1600,200 M0,400 L1600,400 M0,600 L1600,600 M0,800 L1600,800" />
+          <path d="M200,0 L200,1000 M400,0 L400,1000 M600,0 L600,1000 M800,0 L800,1000 M1000,0 L1000,1000 M1200,0 L1200,1000 M1400,0 L1400,1000" />
+        </g>
+
+        <g transform="translate(0, 0)">
+          <rect width="1600" height="80" fill="rgba(15, 23, 42, 0.8)" stroke="#1e293b" stroke-width="1"/>
+          <text x="60" y="48" font-size="24" font-weight="bold" fill="#00f2fe" filter="url(#glow-cyan)" letter-spacing="2">宝钢湛江自备电厂 #1机组</text>
+          <text x="800" y="48" font-size="22" font-weight="bold" fill="#ffffff" text-anchor="middle" letter-spacing="4">锅炉受热面炉管分布图 (Π型设计)</text>
+          <path d="M 60,65 L 360,65" stroke="#00f2fe" stroke-width="2" />
+        </g>
+
+        <g id="boiler-shell" fill="none" stroke="#334155" stroke-width="3" stroke-linejoin="round">
+          <path d="M 200,400 L 200,180 L 1350,180 L 1350,800 L 1005,800 L 1005,420 L 695,420 L 695,800 L 450,960 L 200,800 Z" />
+          <path d="M 202,650 L 693,650 L 693,800 L 450,958 L 202,800 Z" fill="url(#fire-glow)" stroke="none" />
+          <text x="450" y="720" font-size="24" fill="#475569" font-weight="bold" text-anchor="middle" letter-spacing="10">炉膛 CORE</text>
+          <text x="850" y="220" font-size="16" fill="#475569" font-weight="bold" text-anchor="middle" letter-spacing="4">水平烟道</text>
+          <text x="1180" y="620" font-size="18" fill="#475569" font-weight="bold" text-anchor="middle" letter-spacing="6">尾部烟道</text>
+        </g>
+
+        <g id="tube-qdp" class="boiler-zone" onclick="showZone('qdp')" transform="translate(260, 60)">
+          <circle cx="30" cy="60" r="14" fill="#ef4444" filter="url(#glow-orange)" />
+          <circle cx="90" cy="60" r="18" fill="#ef4444" filter="url(#glow-orange)" />
+          <path d="M 30,60 L 30,340 A 30,30 0 0,0 90,340 L 90,60" fill="none" stroke="#ef4444" stroke-width="26" stroke-linecap="round" opacity="0.85" />
+          <path d="M 30,60 L 30,340 A 30,30 0 0,0 90,340 L 90,60" fill="none" stroke="#000" stroke-width="22" stroke-linecap="round" />
+          <path d="M 30,60 L 30,340 A 30,30 0 0,0 90,340 L 90,60" fill="none" stroke="url(#tube-pattern)" stroke-width="20" stroke-linecap="round" />
+          <text x="60" y="390" font-size="14" font-weight="bold" fill="#ef4444" text-anchor="middle">全大屏</text>
+        </g>
+
+        <g id="tube-hp" class="boiler-zone" onclick="showZone('hp')" transform="translate(400, 60)">
+          <circle cx="30" cy="60" r="14" fill="#f97316" filter="url(#glow-orange)" />
+          <circle cx="90" cy="60" r="18" fill="#f97316" filter="url(#glow-orange)" />
+          <path d="M 30,60 L 30,340 A 30,30 0 0,0 90,340 L 90,60" fill="none" stroke="#f97316" stroke-width="26" stroke-linecap="round" opacity="0.85" />
+          <path d="M 30,60 L 30,340 A 30,30 0 0,0 90,340 L 90,60" fill="none" stroke="#000" stroke-width="22" stroke-linecap="round" />
+          <path d="M 30,60 L 30,340 A 30,30 0 0,0 90,340 L 90,60" fill="none" stroke="url(#tube-pattern)" stroke-width="20" stroke-linecap="round" />
+          <text x="60" y="390" font-size="14" font-weight="bold" fill="#f97316" text-anchor="middle">后屏</text>
+        </g>
+
+        <g id="tube-gg" class="boiler-zone" onclick="showZone('gg')" transform="translate(540, 60)">
+          <circle cx="25" cy="60" r="14" fill="#f59e0b" />
+          <circle cx="85" cy="60" r="18" fill="#f59e0b" />
+          <path d="M 25,60 L 25,335 A 30,30 0 0,0 85,335 L 85,60" fill="none" stroke="#f59e0b" stroke-width="26" stroke-linecap="round" />
+          <path d="M 25,60 L 25,335 A 30,30 0 0,0 85,335 L 85,60" fill="none" stroke="#000" stroke-width="22" stroke-linecap="round" />
+          <path d="M 25,60 L 25,335 A 30,30 0 0,0 85,335 L 85,60" fill="none" stroke="url(#tube-pattern)" stroke-width="20" stroke-linecap="round" />
+          <text x="55" y="390" font-size="14" font-weight="bold" fill="#f59e0b" text-anchor="middle">高过</text>
+        </g>
+
+        <g id="tube-gz" class="boiler-zone" onclick="showZone('gz')" transform="translate(680, 60)">
+          <circle cx="20" cy="60" r="14" fill="#a855f7" filter="url(#glow-orange)" />
+          <circle cx="80" cy="60" r="18" fill="#a855f7" filter="url(#glow-orange)" />
+          <path d="M 20,60 L 20,330 A 30,30 0 0,0 80,330 L 80,60" fill="none" stroke="#a855f7" stroke-width="26" stroke-linecap="round" opacity="0.85" />
+          <path d="M 20,60 L 20,330 A 30,30 0 0,0 80,330 L 80,60" fill="none" stroke="#000" stroke-width="22" stroke-linecap="round" />
+          <path d="M 20,60 L 20,330 A 30,30 0 0,0 80,330 L 80,60" fill="none" stroke="url(#tube-pattern)" stroke-width="20" stroke-linecap="round" />
+          <text x="50" y="390" font-size="14" font-weight="bold" fill="#a855f7" text-anchor="middle">高再</text>
+        </g>
+
+        <g id="tube-dwzr" class="boiler-zone" onclick="showZone('dwzr')" transform="translate(1030, 320)">
+          <rect width="130" height="240" fill="rgba(147, 51, 234, 0.15)" stroke="#a855f7" stroke-width="2" rx="4"/>
+          <rect width="130" height="240" fill="url(#tube-pattern-horiz)" rx="4"/>
+          <path d="M 15,20 L 115,20 M 15,60 L 115,60 M 15,100 L 115,100 M 15,140 L 115,140 M 15,180 L 115,180 M 15,220 L 115,220" stroke="rgba(168, 85, 247, 0.3)" stroke-width="2" />
+          <text x="65" y="110" font-size="16" font-weight="bold" fill="#e9d5ff" text-anchor="middle">低温</text>
+          <text x="65" y="140" font-size="16" font-weight="bold" fill="#e9d5ff" text-anchor="middle">再热器</text>
+        </g>
+
+        <g id="tube-dwgr" class="boiler-zone" onclick="showZone('dwgr')" transform="translate(1190, 320)">
+          <rect width="130" height="240" fill="rgba(6, 182, 212, 0.15)" stroke="#06b6d4" stroke-width="2" rx="4" filter="url(#glow-cyan)"/>
+          <rect width="130" height="240" fill="url(#tube-pattern-horiz)" rx="4"/>
+          <path d="M 15,20 L 115,20 M 15,60 L 115,60 M 15,100 L 115,100 M 15,140 L 115,140 M 15,180 L 115,180 M 15,220 L 115,220" stroke="rgba(6, 114, 212, 0.3)" stroke-width="2" />
+          <text x="65" y="110" font-size="16" font-weight="bold" fill="#a5f3fc" text-anchor="middle">低温</text>
+          <text x="65" y="140" font-size="16" font-weight="bold" fill="#a5f3fc" text-anchor="middle">过热器</text>
+        </g>
+
+        <g id="tube-scr" class="boiler-zone" onclick="showZone('scr')" transform="translate(1030, 580)">
+          <rect width="290" height="50" fill="rgba(244, 63, 94, 0.15)" stroke="#f43f5e" stroke-width="2" rx="4" stroke-dasharray="6,4"/>
+          <text x="145" y="32" font-size="16" font-weight="bold" fill="#fda4af" text-anchor="middle" letter-spacing="4">SCR 脱硝反应器</text>
+        </g>
+
+        <g id="tube-smq" class="boiler-zone" onclick="showZone('smq')" transform="translate(1030, 650)">
+          <rect width="290" height="110" fill="rgba(16, 185, 129, 0.15)" stroke="#10b981" stroke-width="2" rx="4"/>
+          <rect width="290" height="110" fill="url(#tube-pattern-horiz)" rx="4"/>
+          <path d="M 20,20 L 270,20 M 20,45 L 270,45 M 20,70 L 270,70 M 20,95 L 270,95" stroke="rgba(16, 185, 129, 0.3)" stroke-width="2" />
+          <text x="145" y="62" font-size="18" font-weight="bold" fill="#d1fae5" text-anchor="middle" letter-spacing="4">省 煤 器</text>
+        </g>
+
+        <g id="smoke-flow" fill="none" stroke="#f43f5e" stroke-width="3" stroke-dasharray="8, 12" stroke-linecap="round">
+          <path d="M 450,780 L 450,280 Q 450,230 500,230 L 960,230 Q 1110,230 1110,300 L 1110,590 L 1170,590 L 1170,760" />
+          <path d="M 1250,300 L 1250,590" />
+        </g>
+
+        <g transform="translate(250, 915)">
+          <rect width="1100" height="50" fill="rgba(30, 41, 59, 0.7)" stroke="#1e293b" rx="25"/>
+          <circle cx="40" cy="25" r="8" fill="#ef4444" /> <text x="55" y="29" font-size="14" fill="#cbd5e1">全大屏受热面</text>
+          <circle cx="200" cy="25" r="8" fill="#f97316" /> <text x="215" y="29" font-size="14" fill="#cbd5e1">后屏过热器</text>
+          <circle cx="360" cy="25" r="8" fill="#f59e0b" /> <text x="375" y="29" font-size="14" fill="#cbd5e1">高温过热器(高过)</text>
+          <circle cx="540" cy="25" r="8" fill="#a855f7" /> <text x="555" y="29" font-size="14" fill="#cbd5e1">高温再热器(高再)</text>
+          <circle cx="720" cy="25" r="8" fill="#06b6d4" /> <text x="735" y="29" font-size="14" fill="#cbd5e1">低温过热器</text>
+          <circle cx="880" cy="25" r="8" fill="#10b981" /> <text x="895" y="29" font-size="14" fill="#cbd5e1">节能省煤器</text>
+          <path d="M 1020,25 L 1060,25" stroke="#f43f5e" stroke-width="2" stroke-dasharray="4,4"/>
+          <text x="1070" y="29" font-size="14" fill="#cbd5e1">烟气流向</text>
+        </g>
+      </svg>
+    </div>
+    <div class="card" id="zoneDetail" style="margin-top:20px; display:none;"></div>
+  </section>
+</main>
+
+<footer>⬢ BOILER-TUBE LIFECYCLE SYSTEM v7.3 ZHANJIANG-STABLE · 2026 ⬢</footer>
+
+<script>
+// ========== LOCAL DB ==========
+let userDB = JSON.parse(localStorage.getItem('boiler_user_db') || '{"events":[], "replacements":[]}');
+function saveDB() { localStorage.setItem('boiler_user_db', JSON.stringify(userDB)); renderDMTable(); updateAIDropdown(); updateLifecycleDropdown(); }
+function addUserEvent() { const code = document.getElementById('dm-code').value.trim().toUpperCase(); const type = document.getElementById('dm-type').value; const date = document.getElementById('dm-date').value; const desc = document.getElementById('dm-desc').value.trim(); if(!code || !date || !desc) { alert('请填写完整'); return; } userDB.events.push({code, type, date, desc, ts: Date.now()}); saveDB(); alert('✅ 保存成功'); document.getElementById('dm-code').value = ''; document.getElementById('dm-desc').value = ''; }
+function addReplacement() { const oldCode = document.getElementById('dm-oldcode').value.trim().toUpperCase(); const newCode = document.getElementById('dm-newcode').value.trim().toUpperCase(); const reason = document.getElementById('dm-reason').value.trim(); const date = document.getElementById('dm-rep-date').value; if(!oldCode || !newCode || !date) { alert('请填写完整'); return; } userDB.replacements.push({oldCode, newCode, reason, date, ts: Date.now()}); userDB.events.push({code: oldCode, type: '报废更换', date, desc: `更换为 ${newCode}，原因：${reason}`, ts: Date.now()}); userDB.events.push({code: newCode, type: '安装投运', date, desc: `替换 ${oldCode}，继承历史`, ts: Date.now()}); saveDB(); alert('✅ 登记成功'); }
+function renderDMTable() { const tbody = document.getElementById('dm-table-body'); if(!tbody) return; const all = [...userDB.events].sort((a,b) => b.ts - a.ts); tbody.innerHTML = all.map(r => `<tr><td>${r.date}</td><td style="color:var(--accent)">${r.code}</td><td><span class="badge badge-sh">${r.type}</span></td><td style="font-family:inherit; max-width:300px; white-space:normal;">${r.desc}</td><td><button class="btn btn-outline" style="padding:2px 8px; font-size:11px; border-color:var(--danger); color:var(--danger);" onclick="deleteEvent(${r.ts})">删除</button></td></tr>`).join('') || '<tr><td colspan="5" style="text-align:center; padding:20px;">暂无数据</td></tr>'; }
+function deleteEvent(ts) { if(confirm('确定删除？')) { userDB.events = userDB.events.filter(e => e.ts !== ts); saveDB(); } }
+function downloadCSVTemplate() { const template = "\uFEFF数据分类,日期,管段编码,事件类型/更换原因,关联新管码,详细描述/结论\n事件,2022-04-15,1-WW-FR-015-0042-000,测厚,,标高18m处壁厚7.1mm\n事件,2024-05-20,1-WW-FR-015-0042-000,测厚,,标高18m处壁厚6.9mm\n事件,2025-10-12,1-WW-FR-015-0042-000,测厚,,壁厚6.7mm 减薄加速"; const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '锅炉寿命数据_录入模板.csv'; a.click(); }
+function exportCSV() { let csvContent = "\uFEFF数据分类,日期,管段编码,事件类型/更换原因,关联新管码,详细描述/结论\n"; userDB.events.forEach(e => { const desc = `"${(e.desc || '').replace(/"/g, '""')}"`; csvContent += `事件,${e.date},${e.code},${e.type},,${desc}\n`; }); userDB.replacements.forEach(r => { const reason = `"${(r.reason || '').replace(/"/g, '""')}"`; csvContent += `更换,${r.date},${r.oldCode},${r.reason},${r.newCode},${reason}\n`; }); const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `锅炉寿命数据_${new Date().toISOString().slice(0,10)}.csv`; a.click(); }
+function importCSV(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const text = e.target.result; const lines = text.split(/\r?\n/).filter(line => line.trim() !== ''); if (lines.length < 2) { alert('CSV文件为空'); return; } function parseCSVLine(line) { const result = []; let current = ''; let inQuotes = false; for (let i = 0; i < line.length; i++) { const char = line[i]; if (char === '"') { if (inQuotes && line[i+1] === '"') { current += '"'; i++; } else { inQuotes = !inQuotes; } } else if (char === ',' && !inQuotes) { result.push(current); current = ''; } else { current += char; } } result.push(current); return result; } let importEvents = 0, importReplacements = 0; for (let i = 1; i < lines.length; i++) { const cols = parseCSVLine(lines[i]); if (cols.length < 5) continue; const category = cols[0].trim(); const date = cols[1].trim(); const code = cols[2].trim().toUpperCase(); const typeOrReason = cols[3].trim(); const relatedCode = cols[4].trim().toUpperCase(); const desc = cols[5] ? cols[5].trim() : ''; const ts = Date.now() + i; if (category === '事件' || category === 'event') { userDB.events.push({ code, type: typeOrReason, date, desc, ts }); importEvents++; } else if (category === '更换' || category === 'replacement') { userDB.replacements.push({ oldCode: code, newCode: relatedCode, reason: typeOrReason, date, ts }); userDB.events.push({ code: code, type: '报废更换', date, desc: `更换为新管 ${relatedCode}，原因：${typeOrReason}`, ts: ts + 0.1 }); userDB.events.push({ code: relatedCode, type: '安装投运', date, desc: `替换旧管 ${code}，继承历史数据`, ts: ts + 0.2 }); importReplacements++; } } saveDB(); alert(`✅ 导入成功！\n新增事件: ${importEvents} 条\n新增更换: ${importReplacements} 条`); } catch (err) { alert('❌ CSV 解析失败'); } }; reader.readAsText(file, 'UTF-8'); event.target.value = ''; }
+function clearLocalData() { if(confirm('确定清空所有数据？')) { userDB = {events:[], replacements:[]}; saveDB(); } }
+
+const COMPONENTS = { ww: { name: '炉膛水冷壁', sys: 'WW', badge: 'badge-ww', spec: 'Φ63.5×7.5', mat: 'SA-210C', count: 722, detail: {'前墙':'192根','后墙':'192根','侧墙':'169*2根','循环回路':'24个'} }, lsh: { name: '低温过热器', sys: 'LSH', badge: 'badge-sh', spec: 'Φ57×6', mat: '15CrMoG/12Cr1MoVG', count: 112, detail: {'排数':'112排','管圈':'5根','布置':'顺列逆流'} }, psh: { name: '全大屏过热器', sys: 'PSH', badge: 'badge-sh', spec: 'Φ51×7', mat: '12Cr1MoVG/T91', count: '6片', detail: {'小屏':'4小屏/片','管数':'14根/小屏'} }, 'hsh-p': { name: '屏式过热器', sys: 'ISH', badge: 'badge-sh', spec: 'Φ54/Φ60', mat: 'T91/TP347H', count: 21, detail: {'屏数':'21屏','管数':'13根/屏'} }, hsh: { name: '高温过热器', sys: 'HSH', badge: 'badge-sh', spec: 'Φ51/Φ54', mat: 'T91/TP304H', count: 32, detail: {'片数':'32片','管圈':'12管圈'} }, lrh: { name: '低温再热器', sys: 'LRH', badge: 'badge-rh', spec: 'Φ63.5×4/6', mat: 'SA-210C/15CrMoG', count: 112, detail: {'水平':'112片','垂直':'56片'} }, hrh: { name: '高温再热器', sys: 'HRH', badge: 'badge-rh', spec: 'Φ60×4', mat: 'T91/TP304H', count: 64, detail: {'片数':'64片','管圈':'7管圈'} }, eco: { name: '省煤器', sys: 'ECO', badge: 'badge-eco', spec: 'Φ51×6', mat: 'SA-210C', count: 124, detail: {'管数':'124根'} } };
+const SH_HEADERS = [{n:1,name:'顶棚进口集箱',spec:'φ273×45',mat:'20G'},{n:2,name:'高过出口集箱',spec:'φ609.6×110',mat:'12Cr1MoVG'}];
+const RH_HEADERS = [{n:1,name:'低再进口集箱',spec:'φ559×30',mat:'20G'},{n:2,name:'高再出口集箱',spec:'φ711×40',mat:'12Cr1MoVG'}];
+const matrix = [ {name:'水冷壁-前墙', sys:'WW', zone:'FR', pMin:1, pMax:1, tMin:1, tMax:192, spec:'Φ63.5×7.5', mat:'SA-210C', badge:'badge-ww'}, {name:'水冷壁-后墙', sys:'WW', zone:'RR', pMin:1, pMax:1, tMin:1, tMax:192, spec:'Φ63.5×7.5', mat:'SA-210C', badge:'badge-ww'}, {name:'水冷壁-左墙', sys:'WW', zone:'FL', pMin:1, pMax:1, tMin:1, tMax:169, spec:'Φ63.5×7.5', mat:'SA-210C', badge:'badge-ww'}, {name:'水冷壁-右墙', sys:'WW', zone:'RI', pMin:1, pMax:1, tMin:1, tMax:169, spec:'Φ63.5×7.5', mat:'SA-210C', badge:'badge-ww'}, {name:'低过-水平段', sys:'LSH', zone:'E', pMin:1, pMax:112, tMin:1, tMax:5, spec:'Φ57×6', mat:'15CrMoG', badge:'badge-sh'}, {name:'高温过热器', sys:'HSH', zone:'O', pMin:1, pMax:32, tMin:1, tMax:12, spec:'Φ51', mat:'TP304H', badge:'badge-sh'}, {name:'高温再热器', sys:'HRH', zone:'M', pMin:1, pMax:64, tMin:1, tMax:7, spec:'Φ60×4', mat:'TP304H', badge:'badge-rh'}, {name:'省煤器', sys:'ECO', zone:'IN', pMin:1, pMax:124, tMin:1, tMax:1, spec:'Φ51×6', mat:'SA-210C', badge:'badge-eco'} ];
+
+function extractThicknessData(code) { const events = userDB.events.filter(e => e.code === code && (e.type.includes('测厚') || e.desc.includes('壁厚'))); const data = []; events.forEach(e => { const match = e.desc.match(/(?:壁厚|减薄至|厚度)\s*[:：]?\s*(\d+\.?\d*)/i); if (match) { const d = new Date(e.date); const year = d.getFullYear() + (d.getMonth() / 12); data.push({ year: parseFloat(year.toFixed(2)), val: parseFloat(match[1]), dateStr: e.date }); } }); return data.sort((a, b) => a.year - b.year); }
+function linearRegression(points) { const n = points.length; if (n < 2) return null; let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0; points.forEach(p => { sumX += p.year; sumY += p.val; sumXY += p.year * p.val; sumXX += p.year * p.year; }); const denominator = (n * sumXX - sumX * sumX); if (denominator === 0) return null; const m = (n * sumXY - sumX * sumY) / denominator; const b = (sumY - m * sumX) / n; return { m, b }; }
+
+document.querySelectorAll('.nav-btn').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); btn.classList.add('active'); document.getElementById('view-' + btn.dataset.view).classList.add('active'); }); });
+function updateClock() { document.getElementById('clock').textContent = new Date().toLocaleTimeString('zh-CN', {hour12: false}); }
+setInterval(updateClock, 1000); updateClock();
+function animateCounters() { document.querySelectorAll('[data-count]').forEach(el => { const target = parseInt(el.dataset.count); let cur = 0; const step = Math.max(1, Math.floor(target / 40)); const int = setInterval(() => { cur += step; if (cur >= target) { cur = target; clearInterval(int); } el.textContent = cur.toLocaleString(); }, 30); }); }
+function matchComponentFromCode(code) { const parts = code.split('-'); if(parts.length < 3) return null; const sys = parts[1]; const zone = parts[2]; return matrix.find(m => m.sys === sys && m.zone === zone) || matrix.find(m => m.sys === sys); }
+
+function doSearch() { const q = document.getElementById('searchInput').value.trim().toUpperCase(); const res = document.getElementById('searchResult'); if(!q) { res.innerHTML = '<div class="alert alert-info">请输入管码关键词</div>'; return; } let matches = []; let matchedCodes = new Set(); userDB.events.forEach(e => { if(e.code.includes(q) && !matchedCodes.has(e.code)) { const eventsForCode = userDB.events.filter(ev => ev.code === e.code).sort((a,b) => new Date(a.date) - new Date(b.date)); let compInfo = matchComponentFromCode(e.code); matches.push({ code: e.code, data: { name: compInfo ? compInfo.name : '动态管段', spec: compInfo ? compInfo.spec : '--', install: eventsForCode[0].date, risk: `共 ${eventsForCode.length} 条记录` }, source: 'local' }); matchedCodes.add(e.code); } }); if(matches.length === 0) { res.innerHTML = `<div class="alert alert-warn">未找到匹配记录</div>`; return; } res.innerHTML = matches.map(m => `<div class="tube-detail"><h3>${m.code} <span class="badge badge-ww" style="margin-left:10px;">本地数据</span></h3><div class="info-grid"><div class="info-item"><div class="k">部件</div><div class="v">${m.data.name}</div></div><div class="info-item"><div class="k">规格</div><div class="v">${m.data.spec}</div></div></div><button class="btn" style="margin-top:15px;" onclick="jumpLifecycle('${m.code}')">查看寿命时间线 →</button></div>`).join(''); }
+function jumpLifecycle(code) { document.querySelector('[data-view="lifecycle"]').click(); loadLifecycle(code); }
+
+document.querySelectorAll('.comp-tab').forEach(tab => { tab.addEventListener('click', () => { document.querySelectorAll('.comp-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); renderComponent(tab.dataset.comp); }); });
+function renderComponent(key) { const c = COMPONENTS[key]; document.getElementById('compContent').innerHTML = `<div class="card"><div class="card-title"><span class="badge ${c.badge}">${c.sys}</span> ${c.name}</div><div class="info-grid"><div class="info-item"><div class="k">规格</div><div class="v">${c.spec}</div></div><div class="info-item"><div class="k">材质</div><div class="v">${c.mat}</div></div><div class="info-item"><div class="k">数量</div><div class="v">${c.count}</div></div></div></div>`; }
+function renderHeaders() { document.getElementById('shHeaders').innerHTML = SH_HEADERS.map(h => `<tr><td>${h.n}</td><td>${h.name}</td><td>${h.spec}</td><td>${h.mat}</td></tr>`).join(''); document.getElementById('rhHeaders').innerHTML = RH_HEADERS.map(h => `<tr><td>${h.n}</td><td>${h.name}</td><td>${h.spec}</td><td>${h.mat}</td></tr>`).join(''); }
+
+function updateLifecycleDropdown() { const sel = document.getElementById('lcSelect'); const codes = [...new Set(userDB.events.map(e => e.code))]; sel.innerHTML = '<option value="">-- 请选择管码 --</option>' + codes.map(c => `<option value="${c}">${c}</option>`).join(''); }
+function loadLifecycle(customCode) { const code = customCode || document.getElementById('lcSelect').value || document.getElementById('lcCustomCode').value.trim().toUpperCase(); if(!code) return; const localEvents = userDB.events.filter(e => e.code === code).sort((a,b) => new Date(a.date) - new Date(b.date)); if(localEvents.length === 0) { document.getElementById('lcContent').innerHTML = `<div class="alert alert-warn">未找到 ${code} 的任何数据。</div>`; return; } let compInfo = matchComponentFromCode(code); const thicknessData = extractThicknessData(code); let miniChartSVG = ''; if (thicknessData.length >= 2) { const w = 400, h = 100, p = 20; const minY = Math.min(...thicknessData.map(d=>d.val)) * 0.95; const maxY = Math.max(...thicknessData.map(d=>d.val)) * 1.05; const minX = thicknessData[0].year; const maxX = thicknessData[thicknessData.length-1].year; const xS = x => p + ((x-minX)/(maxX-minX || 1)) * (w-2*p); const yS = y => h - p - ((y-minY)/(maxY-minY || 1)) * (h-2*p); let path = thicknessData.map((d,i) => `${i===0?'M':'L'} ${xS(d.year)} ${yS(d.val)}`).join(' '); miniChartSVG = `<svg class="mini-chart" viewBox="0 0 ${w} ${h}"><path d="${path}" fill="none" stroke="#00d4ff" stroke-width="2"/><path d="${path} L ${xS(maxX)} ${h-p} L ${xS(minX)} ${h-p} Z" fill="rgba(0,212,255,0.1)"/>${thicknessData.map(d=>`<circle cx="${xS(d.year)}" cy="${yS(d.val)}" r="3" fill="#00d4ff"/>`).join('')}</svg>`; } document.getElementById('lcContent').innerHTML = `<div class="card"><div class="card-title">管段基本信息</div><h2 style="font-family:'Consolas',monospace; color:var(--accent); letter-spacing:3px; margin-bottom:18px;">${code}</h2><div class="info-grid"><div class="info-item"><div class="k">部件</div><div class="v">${compInfo?compInfo.name:'未知'}</div></div><div class="info-item"><div class="k">规格材质</div><div class="v">${compInfo?compInfo.spec+' · '+compInfo.mat:'--'}</div></div><div class="info-item"><div class="k">有效测厚点</div><div class="v">${thicknessData.length} 个</div></div></div>${miniChartSVG}</div><div class="card"><div class="card-title">全寿命事件时间线 (共 ${localEvents.length} 条)</div><div class="timeline">${localEvents.map(t => `<div class="tl-item"><div class="tl-date">${t.date}</div><div class="tl-title">${t.type}</div><div class="tl-desc">${t.desc}</div></div>`).join('')}</div></div>`; }
+
+function updateAIDropdown() { const sel = document.getElementById('ai-target'); const codes = [...new Set(userDB.events.map(e => e.code))]; const validCodes = codes.filter(c => extractThicknessData(c).length >= 2); sel.innerHTML = validCodes.length > 0 ? validCodes.map(c => `<option value="${c}">${c} (${extractThicknessData(c).length}个测厚点)</option>`).join('') : '<option value="">-- 暂无具备2个以上测厚点的管码，请先录入数据 --</option>'; }
+function runAIAnalysis() { const target = document.getElementById('ai-target').value; const threshold = parseFloat(document.getElementById('ai-threshold').value); if(!target) { alert('请先录入至少2次测厚数据'); return; } document.getElementById('ai-loading').style.display = 'block'; document.getElementById('ai-results').style.display = 'none'; setTimeout(() => { const history = extractThicknessData(target); const reg = linearRegression(history); if (!reg) { alert('数据不足或无法计算回归线'); document.getElementById('ai-loading').style.display = 'none'; return; } const rate = -reg.m; const currentYear = history[history.length-1].year; const currentVal = history[history.length-1].val; const prediction = []; for(let i=1; i<=5; i++) { const futureYear = currentYear + i; const futureVal = reg.m * futureYear + reg.b; prediction.push({year: futureYear, val: futureVal}); } let rul = 'N/A'; let status = '正常'; let statusColor = 'var(--ok)'; if (reg.m < 0) { const threshYear = (threshold - reg.b) / reg.m; const rulYears = threshYear - currentYear; if (rulYears > 0) { rul = rulYears.toFixed(1); if (rulYears < 2) { status = '预警'; statusColor = 'var(--danger)'; } else if (rulYears < 5) { status = '关注'; statusColor = 'var(--warn)'; } } else { rul = '0 (已超标)'; status = '危险'; statusColor = 'var(--danger)'; } } else { status = '异常(增厚)'; statusColor = 'var(--warn)'; } const aiData = { history, prediction, threshold, rate: rate.toFixed(3), rul, status, statusColor, currentVal, currentYear }; renderAIResults(aiData, target); }, 1500); }
+function renderAIResults(data, target) { document.getElementById('ai-loading').style.display = 'none'; document.getElementById('ai-results').style.display = 'block'; document.getElementById('ai-rul').textContent = data.rul; document.getElementById('ai-rate').textContent = data.rate; document.getElementById('ai-points').textContent = data.history.length; document.getElementById('ai-status').textContent = data.status; document.getElementById('ai-status').style.color = data.statusColor; renderAIChart(data); const report = `【AI 线性回归趋势分析报告】\n对象：${target}\n算法：最小二乘法 (Ordinary Least Squares)\n\n1. 数据基础：成功提取 ${data.history.length} 个真实历史测厚数据点。\n2. 趋势计算：拟合直线斜率为 ${(-data.rate).toFixed(3)} mm/年。当前最新壁厚为 ${data.currentVal} mm。\n3. 寿命预测：按照当前真实减薄速率，预计将在 ${data.rul} 年后触及设定的报废阈值 (${data.threshold} mm)。\n4. AI 建议：${data.status === '预警' || data.status === '危险' ? '减薄速率过快，建议立即安排超声波测厚(UT)复测，并检查烟气侧冲刷情况，必要时提前更换。' : '状态可控，建议按常规检修周期继续监控。'}`; typeWriter('ai-report-text', report, 15); }
+function renderAIChart(data) { const svg = document.getElementById('aiChart'); svg.innerHTML = ''; const width = 800, height = 300, padding = { top: 20, right: 50, bottom: 40, left: 60 }; const chartW = width - padding.left - padding.right, chartH = height - padding.top - padding.bottom; const allPoints = [...data.history, ...data.prediction]; const minYear = Math.min(...allPoints.map(p => p.year)) - 0.5; const maxYear = Math.max(...allPoints.map(p => p.year)) + 0.5; const minVal = Math.min(data.threshold, ...allPoints.map(p => p.val)) * 0.95; const maxVal = Math.max(...allPoints.map(p => p.val)) * 1.05; const xScale = (year) => padding.left + ((year - minYear) / (maxYear - minYear)) * chartW; const yScale = (val) => padding.top + chartH - ((val - minVal) / (maxVal - minVal)) * chartH; for(let i=0; i<=5; i++) { const y = padding.top + (chartH / 5) * i, val = maxVal - ((maxVal - minVal) / 5) * i; svg.innerHTML += `<line x1="${padding.left}" y1="${y}" x2="${width-padding.right}" y2="${y}" stroke="rgba(0,212,255,0.1)" stroke-width="1" /><text x="${padding.left-10}" y="${y+4}" fill="#7fb3d5" font-size="10" text-anchor="end">${val.toFixed(1)}</text>`; } for(let y = Math.ceil(minYear); y <= Math.floor(maxYear); y++) svg.innerHTML += `<text x="${xScale(y)}" y="${height - 10}" fill="#7fb3d5" font-size="10" text-anchor="middle">${y}</text>`; const threshY = yScale(data.threshold); svg.innerHTML += `<line x1="${padding.left}" y1="${threshY}" x2="${width-padding.right}" y2="${threshY}" stroke="#ff3860" stroke-width="2" stroke-dasharray="6,4" /><text x="${width-padding.right+5}" y="${threshY+4}" fill="#ff3860" font-size="11" font-weight="bold">阈值 ${data.threshold}</text>`; let histPath = data.history.map((p, i) => `${i===0?'M':'L'} ${xScale(p.year)} ${yScale(p.val)}`).join(' '); svg.innerHTML += `<path d="${histPath}" fill="none" stroke="#00d4ff" stroke-width="3" filter="drop-shadow(0 0 4px #00d4ff)" />`; data.history.forEach(p => svg.innerHTML += `<circle cx="${xScale(p.year)}" cy="${yScale(p.val)}" r="5" fill="#001122" stroke="#00d4ff" stroke-width="2" />`); const lastHist = data.history[data.history.length - 1]; let predPath = `M ${xScale(lastHist.year)} ${yScale(lastHist.val)} ` + data.prediction.map(p => `L ${xScale(p.year)} ${yScale(p.val)}`).join(' '); svg.innerHTML += `<path d="${predPath}" fill="none" stroke="#00e676" stroke-width="3" stroke-dasharray="8,6" filter="drop-shadow(0 0 4px #00e676)" />`; data.prediction.forEach(p => svg.innerHTML += `<circle cx="${xScale(p.year)}" cy="${yScale(p.val)}" r="4" fill="#00e676" />`); }
+function typeWriter(elementId, text, speed = 20) { const el = document.getElementById(elementId); el.innerHTML = ''; let i = 0; const cursor = '<span class="ai-cursor"></span>'; function type() { if (i < text.length) { el.innerHTML = text.substring(0, i + 1).replace(/\n/g, '<br>') + cursor; i++; setTimeout(type, speed); } else { el.innerHTML = text.replace(/\n/g, '<br>'); } } type(); }
+
+function renderMatrix() { const tbody = document.getElementById('matrixBody'); let total = 0; tbody.innerHTML = matrix.map(m => { const count = (m.pMax - m.pMin + 1) * (m.tMax - m.tMin + 1); total += count; return `<tr><td style="font-family:inherit">${m.name}</td><td><span class="badge ${m.badge}">${m.sys}</span></td><td>${m.zone}</td><td>${m.pMin}~${m.pMax}</td><td>${m.tMin}~${m.tMax}</td><td style="color:var(--accent)">${count}</td><td>${m.spec}</td><td style="font-family:inherit;font-size:11px">${m.mat}</td></tr>`; }).join(''); document.getElementById('invTotal').textContent = total.toLocaleString(); }
+function pad(n, len) { return String(n).padStart(len, '0'); }
+function generateCSV(boilerId) { const logBox = document.getElementById('invLogBox'); const progBar = document.getElementById('invProgBar'); const progFill = document.getElementById('invProgFill'); const previewBox = document.getElementById('invPreview'); logBox.style.display = 'block'; progBar.style.display = 'block'; logBox.innerHTML = ''; progFill.style.width = '0%'; const boilers = boilerId === 0 ? [1, 2] : [boilerId]; let csvContent = "\uFEFF炉号,系统代码,位置区域,屏/排编号,管圈/管编号,分段特征,完整管码,部件名称,规格,材质\n"; let rowCount = 0; let previewLines = []; invLog(`[INIT] 启动生成引擎... 目标: ${boilers.join(', ')}`); let bIdx = 0, mIdx = 0, p = 0, t = 0; function processChunk() { const startTime = performance.now(); while (performance.now() - startTime < 50 && bIdx < boilers.length) { const b = boilers[bIdx]; const m = matrix[mIdx]; for (; p <= m.pMax; p++) { if (p < m.pMin) p = m.pMin; for (; t <= m.tMax; t++) { if (t < m.tMin) t = m.tMin; const code = `${b}-${m.sys}-${m.zone}-${pad(p,3)}-${pad(t,4)}-000`; csvContent += `${b},${m.sys},${m.zone},${pad(p,3)},${pad(t,4)},000,${code},${m.name},${m.spec},${m.mat}\n`; rowCount++; if (rowCount <= 10) previewLines.push(`<span>${code}</span> | ${m.name}`); } t = m.tMin; } invLog(`[OK] ${b}号炉 - ${m.name} 完毕`); mIdx++; p = 0; t = 0; if (mIdx >= matrix.length) { mIdx = 0; bIdx++; } progFill.style.width = `${((bIdx * matrix.length + mIdx) / (boilers.length * matrix.length)) * 100}%`; } if (bIdx < boilers.length) { requestAnimationFrame(processChunk); } else { progFill.style.width = '100%'; invLog(`[DONE] 总计 ${rowCount.toLocaleString()} 条。正在打包...`); previewBox.innerHTML = previewLines.join('<br>') + '<br><span>... (共 ' + rowCount.toLocaleString() + ' 条)</span>'; const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `锅炉管段台账_${boilerId===0?'全厂':boilerId+'号炉'}_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href); } } requestAnimationFrame(processChunk); }
+function invLog(msg) { const logBox = document.getElementById('invLogBox'); logBox.innerHTML += `<div>[${new Date().toLocaleTimeString('zh-CN', {hour12:false})}] ${msg}</div>`; logBox.scrollTop = logBox.scrollHeight; }
+
+const ZONES = {
+  qdp: {title:'全大屏过热器', sys:'PSH', spec:'Φ51×7 12Cr1MoVG/T91', count:'6片×4小屏', desc:'位于炉膛上方，全辐射式受热面。工作条件极为恶劣，屏底外圈采用 SA-213T91 耐热钢。', params:'吸收炉膛高温辐射热 | 烟气侧易结渣 | 需重点监控夹持管状态'},
+  hp: {title:'后屏/屏式过热器', sys:'ISH', spec:'Φ54/Φ60 T91/TP347H', count:'21屏', desc:'布置于炉膛出口处，辐射对流式受热面。最外圈及包扎管底部采用奥氏体不锈钢 TP347H。', params:'承受炉膛出口高温烟气冲刷 | 易发生高温腐蚀 | 节距 S1=685.8'},
+  gg: {title:'高温过热器 (高过)', sys:'HSH', spec:'Φ51/Φ54 T91/TP304H', count:'32片', desc:'悬吊于水平烟道内，顺列顺流布置。12管圈U形绕制，暴露在最外侧的管子采用 TP304H。', params:'蒸汽温度最高区 | 烟气流向转折区 | 需防范管排晃动磨损'},
+  gz: {title:'高温再热器 (高再)', sys:'HRH', spec:'Φ60×4 T91/TP304H', count:'64片', desc:'位于水平烟道后部，7根管圈绕制。入口设有喷水减温器，控制再热汽温。', params:'带喷水减温控制 | 烟气温度开始下降 | 管间由带状机械管夹定位'},
+  dwgr: {title:'低温过热器 (低过)', sys:'LSH', spec:'Φ57×6 15CrMoG/12Cr1MoVG', count:'112排', desc:'布置于尾部竖井前烟道，顺列逆流布置。水平段分4组，留有检修空间。', params:'入口烟温 876.6℃ | 出口烟温 382.7℃ | 压降 -0.3kPa | 易积灰'},
+  dwzr: {title:'低温再热器 (低再)', sys:'LRH', spec:'Φ63.5×4/6 SA-210C/15CrMoG', count:'112片+56片', desc:'布置于尾部竖井后烟道，与低过并列。水平段5组，垂直段每2排并1排。', params:'入口烟温 840.3℃ | 出口烟温 349.4℃ | 压降 -0.2kPa | 支撑块承重'},
+  scr: {title:'SCR 脱硝反应器', sys:'SCR', spec:'氨注射栅格 + 催化剂', count:'A/B侧', desc:'位于尾部烟道下方，喷氨格栅将氨气与烟气均匀混合，通过催化剂还原 NOx。', params:'入口NOx ~278 mg/Nm³ | 出口NOx 25.1 mg/Nm³ | 脱硝效率 99.9% | 氨逃逸 <3ppm'},
+  smq: {title:'省煤器', sys:'ECO', spec:'Φ51×6 SA-210C', count:'124管', desc:'布置于SCR下方，利用尾部烟气余热加热锅炉给水，降低排烟温度，提高锅炉热效率。', params:'烟温 287.5℃ → 289.0℃ | 给水温度提升 | 易发生低温腐蚀与飞灰磨损'}
+};
+function showZone(z) { 
+  const info = ZONES[z]; 
+  const el = document.getElementById('zoneDetail'); 
+  el.style.display = 'block'; 
+  el.innerHTML = `<div class="card-title"><span class="badge badge-ww">${info.sys}</span> ${info.title}</div>
+  <div class="info-grid">
+    <div class="info-item"><div class="k">规格/材质</div><div class="v">${info.spec}</div></div>
+    <div class="info-item"><div class="k">数量/规模</div><div class="v">${info.count}</div></div>
+    <div class="info-item" style="grid-column:span 2;"><div class="k">湛江#1机组 实时运行参数</div><div class="v" style="font-size:13px; color:var(--warn);">${info.params}</div></div>
+    <div class="info-item" style="grid-column:span 2;"><div class="k">工艺与防磨防爆描述</div><div class="v" style="font-size:12px;">${info.desc}</div></div>
+  </div>`; 
+  el.scrollIntoView({behavior:'smooth', block:'nearest'}); 
+}
+
+// ========== INIT ==========
+animateCounters();
+renderComponent('ww');
+renderHeaders();
+renderMatrix();
+renderDMTable();
+updateAIDropdown();
+updateLifecycleDropdown();
+</script>
+</body>
+</html>
