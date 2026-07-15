@@ -95,6 +95,7 @@ jobs:
           if [[ -n "${APP_ADMIN_USERNAME:-}" && -n "${APP_ADMIN_PASSWORD:-}" ]]; then
             python scripts/hash_password_sql.py "$APP_ADMIN_USERNAME" "$APP_ADMIN_PASSWORD" > seed-admin.sql
             npx --yes wrangler@latest d1 execute DB --remote --file=seed-admin.sql
+            npx --yes wrangler@latest d1 execute DB --remote --command="SELECT COUNT(*) AS admin_user_count FROM users;" --json
           else
             echo "::warning::APP_ADMIN_USERNAME and APP_ADMIN_PASSWORD are not configured. Login will be enabled, but no admin user will be seeded."
           fi

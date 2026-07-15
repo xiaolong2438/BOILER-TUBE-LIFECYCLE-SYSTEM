@@ -19,7 +19,7 @@ def main() -> int:
         print("Usage: hash_password_sql.py <username> <password>", file=sys.stderr)
         return 1
     username = sys.argv[1].strip()
-    password = sys.argv[2]
+    password = sys.argv[2].strip()
     if not username:
         print("Username cannot be empty.", file=sys.stderr)
         return 1
