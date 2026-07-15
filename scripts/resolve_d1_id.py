@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import pathlib
 import sys
 
@@ -26,14 +27,44 @@ def find_id(node, name: str = "") -> str:
     return ""
 
 
+UUID_PATTERN = re.compile(
+    r"\b[0-9a-fA-F]{8}-"
+    r"[0-9a-fA-F]{4}-"
+    r"[0-9a-fA-F]{4}-"
+    r"[0-9a-fA-F]{4}-"
+    r"[0-9a-fA-F]{12}\b"
+)
+
+
+def find_id_in_text(text: str, name: str = "") -> str:
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if name:
+        for line in lines:
+            if name.lower() in line.lower():
+                match = UUID_PATTERN.search(line)
+                if match:
+                    return match.group(0)
+    for line in lines:
+        match = UUID_PATTERN.search(line)
+        if match:
+            return match.group(0)
+    return ""
+
+
 def main() -> int:
     if len(sys.argv) not in (2, 3):
         print("Usage: resolve_d1_id.py <json-file> [database-name]", file=sys.stderr)
         return 1
     path = pathlib.Path(sys.argv[1])
     name = sys.argv[2] if len(sys.argv) == 3 else ""
-    data = json.loads(path.read_text(encoding="utf-8"))
-    result = find_id(data, name)
+    raw = path.read_text(encoding="utf-8")
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        data = None
+    result = find_id(data, name) if data is not None else ""
+    if not result:
+        result = find_id_in_text(raw, name)
     if not result:
         return 0
     print(result)

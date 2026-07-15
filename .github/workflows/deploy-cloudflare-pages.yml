@@ -67,8 +67,8 @@ jobs:
           npx --yes wrangler@latest d1 list --json > d1-list.json
           D1_DATABASE_ID="$(python scripts/resolve_d1_id.py d1-list.json "$DB_NAME")"
           if [[ -z "$D1_DATABASE_ID" ]]; then
-            npx --yes wrangler@latest d1 create "$DB_NAME" --json > d1-create.json
-            D1_DATABASE_ID="$(python scripts/resolve_d1_id.py d1-create.json)"
+            npx --yes wrangler@latest d1 create "$DB_NAME" > d1-create.txt
+            D1_DATABASE_ID="$(python scripts/resolve_d1_id.py d1-create.txt "$DB_NAME")"
           fi
           if [[ -z "$D1_DATABASE_ID" ]]; then
             echo "Unable to resolve D1 database id."
