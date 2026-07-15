@@ -108,3 +108,39 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=boiler-tube-lifecycle-system --branch=${{ github.ref_name }}
+
+      - name: Smoke test deployed login
+        if: steps.cloudflare.outputs.ready == 'true'
+        shell: bash
+        env:
+          APP_ADMIN_USERNAME: ${{ secrets.APP_ADMIN_USERNAME }}
+          APP_ADMIN_PASSWORD: ${{ secrets.APP_ADMIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          payload="$(python - <<'PY'
+import json
+import os
+print(json.dumps({
+    "username": os.environ["APP_ADMIN_USERNAME"],
+    "password": os.environ["APP_ADMIN_PASSWORD"],
+}))
+PY
+)"
+          status="$(curl -sS -o login-response.json -c login-cookies.txt -w "%{http_code}" \
+            -H 'Content-Type: application/json' \
+            -d "$payload" \
+            https://btgs.wegpt.top/api/auth/login)"
+          echo "login_status=$status"
+          cat login-response.json
+          if [[ "$status" != "200" ]]; then
+            echo "::error::Deployed login endpoint rejected the seeded admin credentials."
+            exit 1
+          fi
+          session_status="$(curl -sS -o session-response.json -b login-cookies.txt -w "%{http_code}" \
+            https://btgs.wegpt.top/api/auth/session)"
+          echo "session_status=$session_status"
+          cat session-response.json
+          if [[ "$session_status" != "200" ]]; then
+            echo "::error::Deployed session endpoint did not accept the login cookie."
+            exit 1
+          fi
