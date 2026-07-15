@@ -1,4 +1,4 @@
-const PUBLIC_PATHS = new Set(['/login.html', '/api/auth/login', '/api/auth/logout']);
+const PUBLIC_PATHS = new Set(['/login', '/login.html', '/api/auth/login', '/api/auth/logout']);
 const PUBLIC_PREFIXES = ['/assets/'];
 
 function jsonResponse(payload, init = {}) {
@@ -40,7 +40,7 @@ export async function onRequest(context) {
   const pathname = url.pathname === '/' ? '/' : url.pathname.replace(/\/+$/, '');
   const session = await getSession(env, request);
 
-  if(pathname === '/login.html' && session) {
+  if((pathname === '/login' || pathname === '/login.html') && session) {
     return Response.redirect(new URL('/', url.origin), 302);
   }
 
@@ -60,7 +60,7 @@ export async function onRequest(context) {
     return jsonResponse({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const loginUrl = new URL('/login.html', url.origin);
+  const loginUrl = new URL('/login', url.origin);
   loginUrl.searchParams.set('next', `${url.pathname}${url.search}`);
   return Response.redirect(loginUrl, 302);
 }

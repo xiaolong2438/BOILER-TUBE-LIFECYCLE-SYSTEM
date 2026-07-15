@@ -921,7 +921,7 @@ async function loadAuthSession() {
   try {
     const response = await fetch('/api/auth/session');
     if(response.status === 401) {
-      location.href = '/login.html';
+      location.href = '/login';
       return;
     }
     if(!response.ok) return;
@@ -939,7 +939,7 @@ async function logoutUser() {
     return;
   }
   await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null);
-  location.href = '/login.html';
+  location.href = '/login';
 }
 function parseCSVLine(line) {
   const result = []; let current = ''; let inQuotes = false;
