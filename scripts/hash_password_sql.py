@@ -7,7 +7,7 @@ import os
 import sys
 
 
-ITERATIONS = 210_000
+ITERATIONS = 100_000
 
 
 def sql_literal(value: str) -> str:

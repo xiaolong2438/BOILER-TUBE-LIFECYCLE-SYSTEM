@@ -1,4 +1,4 @@
-export const PASSWORD_ITERATIONS = 210_000;
+export const PASSWORD_ITERATIONS = 100_000;
 const SALT_BYTES = 16;
 
 function bytesToBase64(bytes) {

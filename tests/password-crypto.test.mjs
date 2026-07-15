@@ -3,7 +3,7 @@ import { createPasswordRecord, verifyPassword } from '../functions/api/auth/_pas
 
 const record = await createPasswordRecord('admin-pass');
 
-assert.equal(record.iterations, 210000);
+assert.equal(record.iterations, 100000);
 assert.ok(record.salt.length > 0);
 assert.ok(record.hash.length > 0);
 assert.ok(await verifyPassword('admin-pass', record));

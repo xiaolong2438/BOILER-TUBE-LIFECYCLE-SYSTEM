@@ -40,7 +40,7 @@ export async function onRequestPost({ env, request }) {
   } catch (error) {
     const detail = String(error?.message || error || 'unknown').slice(0, 240);
     console.error('Login runtime error:', detail);
-    return jsonResponse({ error: '登录服务异常', detail }, { status: 500 });
+    return jsonResponse({ error: '登录服务异常' }, { status: 500 });
   }
 }
 
