@@ -289,7 +289,12 @@
   .unit-switch button { min-width: 82px; padding: 9px 12px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text-dim); cursor: pointer; font-family: inherit; font-size: 13px; }
   .unit-switch button:hover { color: var(--accent); border-color: rgba(0,212,255,0.24); }
   .unit-switch button.active { color: #001122; background: linear-gradient(135deg, var(--accent-3), var(--accent)); box-shadow: 0 0 14px rgba(0,212,255,0.28); font-weight: 700; }
-  .hero-task-list { margin-top: 12px; display: grid; gap: 8px; }
+  .hero-task-list { height: 230px; margin-top: 12px; display: grid; grid-auto-rows: max-content; align-content: start; gap: 8px; overflow-y: scroll; overflow-x: hidden; padding-right: 4px; -webkit-overflow-scrolling: touch; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: rgba(72,202,228,0.58) rgba(0,212,255,0.06); }
+  .hero-task-list::-webkit-scrollbar { width: 8px; }
+  .hero-task-list::-webkit-scrollbar-track { background: rgba(0,212,255,0.06); border-radius: 4px; }
+  .hero-task-list::-webkit-scrollbar-thumb { background: rgba(72,202,228,0.58); border: 2px solid rgba(0,6,15,0.76); border-radius: 4px; }
+  .hero-task-list::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
   .hero-task-item { position: relative; display: grid; grid-template-columns: 38px 1fr auto; gap: 8px; align-items: center; padding: 9px 10px 9px 13px; background: rgba(0,8,18,0.42); border: 1px solid rgba(72,202,228,0.1); border-radius: 6px; overflow: hidden; transition: transform .18s, border-color .18s, background .18s; }
   .hero-task-item::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2px; border-radius: 2px; background: var(--tone, var(--accent)); box-shadow: 0 0 8px -1px var(--tone, var(--accent)); }
   .hero-task-item.danger { --tone: var(--danger); }

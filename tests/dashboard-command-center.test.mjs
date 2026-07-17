@@ -25,6 +25,7 @@ assert.match(html, /class="command-warning/);
 assert.match(html, /\.command-warning:hover\s*\{[^}]*border-top-color:[^}]*background:[^}]*box-shadow:/s);
 assert.match(html, /\.command-warning:focus-visible\s*\{[^}]*outline:/s);
 assert.match(html, /#dashboard-warning-list\s*\{[^}]*height:\s*145px;[^}]*overflow-y:\s*scroll;[^}]*scrollbar-gutter:\s*stable/s);
+assert.match(html, /\.hero-task-list\s*\{[^}]*height:\s*230px;[^}]*overflow-y:\s*scroll;[^}]*scrollbar-gutter:\s*stable/s);
 for (const id of ["dashboardHealthRing", "dashboardTrendChart", "dashboardSurfaceList", "dashboard-warning-list"]) {
   assert.equal((html.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} must be unique`);
 }
