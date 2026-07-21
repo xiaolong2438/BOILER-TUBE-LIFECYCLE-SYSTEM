@@ -885,20 +885,20 @@ function renderDashboardHealthCore(stats) {
   ring.setAttribute('aria-label', `综合健康度 ${health}%`);
   if(window.__healthRaf) cancelAnimationFrame(window.__healthRaf);
   const startVal = Number(value.dataset.raw) || 0;
-  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches || startVal === health) {
-    value.textContent = `${health}%`;
-  } else {
+  value.textContent = `${health}%`;
+  value.dataset.raw = health;
+  if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches && startVal !== health) {
     const startTime = performance.now();
     const duration = 900;
     const step = now => {
       const t = Math.min(1, (now - startTime) / duration);
       const eased = 1 - Math.pow(1 - t, 3);
       value.textContent = `${Math.round(startVal + (health - startVal) * eased)}%`;
-      if(t < 1) window.__healthRaf = requestAnimationFrame(step);
+      if(t >= 1) { value.textContent = `${health}%`; return; }
+      window.__healthRaf = requestAnimationFrame(step);
     };
     window.__healthRaf = requestAnimationFrame(step);
   }
-  value.dataset.raw = health;
   right.innerHTML = `<div class="health-side-metric" style="--metric-color:${stats.delta >= 0 ? 'var(--ok)' : 'var(--danger)'}"><span>较上次检修</span><strong>${stats.delta >= 0 ? '+' : ''}${stats.delta}%</strong></div><div class="health-side-metric" style="--metric-color:var(--ok)"><span>闭环率</span><strong>83%</strong></div>`;
 }
 function syncDashboardSnapshot() {
@@ -932,8 +932,6 @@ function syncDashboardSnapshot() {
   if(highKpi) highKpi.textContent = highCount.toLocaleString();
   const warnKpi = document.getElementById('dashboard-warn-risk-count-kpi');
   if(warnKpi) warnKpi.textContent = mediumCount.toLocaleString();
-  const healthEl = document.getElementById('dashboard-overall-health');
-  if(healthEl) healthEl.dataset.raw = trendStats.current;
   const healthNote = document.getElementById('dashboard-overall-health-note');
   if(healthNote) healthNote.textContent = dashboardUnit === 'all' ? '全厂主要受热面综合口径' : `${unitLabel}主要受热面综合口径`;
   const deltaEl = document.getElementById('dashboard-overall-delta');
