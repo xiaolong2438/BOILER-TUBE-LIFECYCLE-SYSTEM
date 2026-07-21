@@ -244,6 +244,11 @@
   button:disabled {
     opacity: .6;
     cursor: wait;
+    box-shadow: none;
+  }
+  button:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 3px;
   }
   .status {
     min-height: 22px;
@@ -251,9 +256,26 @@
     text-align: center;
     color: var(--muted);
     font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
   }
   .status.error { color: var(--danger); }
   .status.ok { color: var(--ok); }
+  .status .spinner {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    border: 2px solid rgba(34, 217, 255, .25);
+    border-top-color: var(--cyan);
+    border-radius: 50%;
+    animation: login-spin 0.8s linear infinite;
+  }
+  @keyframes login-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .status .spinner { animation-duration: 1.6s; }
+  }
   @media (max-width: 1200px) {
     .page { padding: 36px 34px; }
     .content { grid-template-columns: 1fr 440px; gap: 30px; }
@@ -332,7 +354,7 @@
             <a href="javascript:void(0)" onclick="setStatus('请联系系统管理员重置密码。')">忘记密码?</a>
           </div>
           <button id="submit-btn" type="submit">登录</button>
-          <div class="status" id="status"></div>
+          <div class="status" id="status" role="status" aria-live="polite"></div>
         </form>
       </section>
     </div>
@@ -351,15 +373,15 @@ if(rememberedUsername) {
 }
 if(window.matchMedia('(min-width: 901px)').matches) usernameInput.focus();
 
-function setStatus(message, type = '') {
-  statusEl.textContent = message;
+function setStatus(message, type = '', busy = false) {
+  statusEl.innerHTML = (busy ? '<span class="spinner" aria-hidden="true"></span>' : '') + (message ? `<span>${message}</span>` : '');
   statusEl.className = `status ${type}`.trim();
 }
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
   submitBtn.disabled = true;
-  setStatus('正在验证账号...');
+  setStatus('正在验证账号...', '', true);
   try {
     const username = form.username.value.trim();
     const response = await fetch('/api/auth/login', {
