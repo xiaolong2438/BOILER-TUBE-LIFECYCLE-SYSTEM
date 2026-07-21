@@ -232,8 +232,7 @@
   .boiler-zone:hover { filter: brightness(1.4) drop-shadow(0 0 15px rgba(0, 242, 254, 0.8)); }
   .boiler-label { font-size: 10px; fill: var(--text); pointer-events: none; font-family: 'Microsoft YaHei', sans-serif; }
 
-  .scan-line { position: fixed; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.3; z-index: 99; pointer-events: none; animation: scan 6s linear infinite; }
-  @keyframes scan { 0% { top: 0; opacity: 0; } 10% { opacity: 0.3; } 90% { opacity: 0.3; } 100% { top: 100vh; opacity: 0; } }
+  .scan-line { display: none; }
 
   .comp-tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid rgba(0, 212, 255, 0.2); flex-wrap: wrap;}
   .comp-tab { padding: 10px 16px; background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 12px; font-family: inherit; letter-spacing: 1px; border-bottom: 2px solid transparent; transition: all 0.3s; }
